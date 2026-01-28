@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finalizar Compra - Studio NBV</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="bg-gray-900 p-6 text-white text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-600"></div>
+            <h1 class="text-2xl font-bold mb-1">Resumo do Pedido</h1>
+            <p class="text-gray-400 text-sm">Arquivos Digitais em Alta Resolução</p>
+        </div>
+
+        <div class="p-6 sm:p-8">
+            <div class="bg-blue-50 border border-blue-100 rounded-xl p-5 mb-6">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-gray-600 font-medium">Quantidade</span>
+                    <span class="font-bold text-gray-900 bg-white px-2 py-0.5 rounded shadow-sm border border-gray-100" id="qtd-fotos">0</span>
+                </div>
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-gray-600 font-medium">Valor Unitário</span>
+                    <span class="font-bold text-gray-900">R$ 8,00</span>
+                </div>
+                <div class="h-px bg-blue-200 w-full my-3"></div>
+                <div class="flex justify-between items-center">
+                    <span class="font-bold text-gray-700 text-lg">Total a Pagar</span>
+                    <span class="font-bold text-blue-700 text-2xl" id="total-valor">R$ 0,00</span>
+                </div>
+                
+                <div class="mt-3 flex items-start gap-2 text-xs text-blue-600 bg-blue-100/50 p-2 rounded-lg">
+                    <i class="fas fa-info-circle mt-0.5"></i>
+                    <p>O valor pago se converte em crédito para revelação impressa futura.</p>
+                </div>
+            </div>
+
+            <form id="checkout-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nome Completo</label>
+                    <input type="text" id="nome" required placeholder="Seu nome" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">CPF (Apenas números)</label>
+                    <input type="tel" id="cpf" required placeholder="000.000.000-00" maxlength="14" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">WhatsApp</label>
+                    <input type="tel" id="whatsapp" required placeholder="(42) 99999-9999" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                </div>
+
+                <button type="submit" id="pay-btn" class="w-full mt-2 bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 group">
+                    <span>Gerar Pagamento Pix</span>
+                    <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                </button>
+            </form>
+
+            <div id="loading" class="hidden flex-col items-center justify-center mt-6 text-center">
+                <i class="fas fa-circle-notch fa-spin text-4xl text-blue-600 mb-3"></i>
+                <p class="text-gray-600 font-medium">Gerando sua cobrança...</p>
+                <p class="text-xs text-gray-400 mt-1">Você será redirecionado para o Asaas.</p>
+            </div>
+        </div>
+        
+        <div class="bg-gray-50 p-4 text-center border-t border-gray-100">
+            <p class="text-xs text-gray-400 flex items-center justify-center gap-1">
+                <i class="fas fa-lock"></i> Pagamento processado via Asaas
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // === CONFIGURAÇÕES ===
+        const PRECO_UNITARIO = 8.00;
+        
+        // [PASSO 3]: VOCÊ VAI COLOCAR O LINK DO MAKE AQUI DEPOIS
+        const MAKE_WEBHOOK_URL = ""; 
+
+        // === LÓGICA DE URL E CÁLCULO ===
+        const params = new URLSearchParams(window.location.search);
+        const filesStr = params.get('files') || "";
+        const folderId = params.get('folderId') || "";
+        const filesList = filesStr.split(',').filter(f => f.trim() !== '');
+        
+        // Se a contagem vier na URL usa ela, se não conta a lista
+        const count = parseInt(params.get('count')) || filesList.length || 0;
+        const total = count * PRECO_UNITARIO;
+
+        // Atualiza UI
+        document.getElementById('qtd-fotos').textContent = count;
+        document.getElementById('total-valor').textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        // Se não tiver fotos ou ID, avisa
+        if (count === 0) {
+            alert("Nenhuma foto selecionada. Por favor, volte e selecione novamente.");
+            document.getElementById('pay-btn').disabled = true;
+            document.getElementById('pay-btn').classList.add('opacity-50', 'cursor-not-allowed');
+        }
+
+        // Máscara Simples de CPF
+        const cpfInput = document.getElementById('cpf');
+        cpfInput.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, "");
+            if (value.length > 11) value = value.slice(0, 11);
+            e.target.value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+        });
+        
+        // Máscara Simples de WhatsApp
+        const whatsInput = document.getElementById('whatsapp');
+        whatsInput.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, "");
+            e.target.value = value; // Mantém só números para facilitar
+        });
+
+        // === ENVIO PARA O MAKE ===
+        document.getElementById('checkout-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!MAKE_WEBHOOK_URL) {
+                alert("Erro de configuração: URL do Webhook não definida.");
+                return;
+            }
+
+            const btn = document.getElementById('pay-btn');
+            const form = document.getElementById('checkout-form');
+            const loading = document.getElementById('loading');
+            
+            // UI Loading
+            form.classList.add('opacity-30', 'pointer-events-none');
+            loading.classList.remove('hidden');
+            loading.classList.add('flex');
+            
+            const payload = {
+                nome: document.getElementById('nome').value,
+                cpf: document.getElementById('cpf').value.replace(/\D/g, ""),
+                whatsapp: document.getElementById('whatsapp').value.replace(/\D/g, ""),
+                total_valor: total,
+                quantidade: count,
+                files: filesStr,    // Nomes das fotos
+                folderId: folderId, // ID da pasta original
+                descricao: `Compra de ${count} fotos digitais - Studio NBV`
+            };
+
+            try {
+                // Envia para o Make
+                const response = await fetch(MAKE_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error('Falha na comunicação com o servidor.');
+
+                const data = await response.json();
+                
+                // O Make deve responder: { "invoiceUrl": "https://..." }
+                if(data.invoiceUrl) {
+                    window.location.href = data.invoiceUrl;
+                } else {
+                    throw new Error('Link de pagamento não recebido.');
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert('Ocorreu um erro ao gerar o pagamento: ' + error.message);
+                
+                // Reset UI
+                form.classList.remove('opacity-30', 'pointer-events-none');
+                loading.classList.add('hidden');
+                loading.classList.remove('flex');
+            }
+        });
+    </script>
+</body>
+</html>
